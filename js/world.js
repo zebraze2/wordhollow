@@ -4,8 +4,8 @@
 
 const T = 16, RW = 34, RH = 24, COLS = 4, ROWS = 2;
 const TW = RW * COLS, TH = RH * ROWS;
-const PLAYABLE = 1; // preview: only the first region is built out so far
-const K = { GRASS: 0, PATH: 1, PLAZA: 2, BORDER: 3, WATER: 4 };
+const PLAYABLE = 8; // lands open to play (raise/lower to stage new lands)
+const K = { GRASS: 0, PATH: 1, PLAZA: 2, BORDER: 3, WATER: 4, BEACH: 5 };
 const SLOTS = [[7, 8], [26, 8], [8, 19], [26, 19], [17, 13]];
 
 const PATH = ['#e8d38e', '#d6bd76', '#f2e2aa']; // the one constant across every land
@@ -15,9 +15,9 @@ const GROUNDS = {
   orchard:{ g: ['#98c04a', '#aace5a', '#84ac40', '#749a38'], p: PATH, fl: ['#f4f0ea', '#f08a7a', '#f6d04a'] },
   golden: { g: ['#b4c24a', '#c4d05a', '#a0ae40', '#8e9c38'], p: PATH, fl: ['#f6d04a', '#f4f0ea', '#e8812a'] },
   autumn: { g: ['#a8c23e', '#bad04c', '#94ae36', '#84a030'], p: PATH, fl: ['#f4f0ea', '#e8812a', '#c45a88'] },
-  sand:   { g: ['#ead49a', '#f4e2b0', '#dcc488', '#ccb478'], p: PATH, fl: ['#f08ab0', '#f4f0ea'] },
+  sand:   { g: ['#a8c27c', '#bcd290', '#94ae6a', '#84a05e'], p: PATH, fl: ['#f08ab0', '#f4f0ea', '#b8d8f0'], beach: ['#f0dca6', '#f8e8c0', '#e2c890'] },
   snow:   { g: ['#e8eef6', '#f6f9fc', '#d4deec', '#c4d0e2'], p: PATH, fl: ['#d8392e'] },
-  dusk:   { g: ['#4e6c74', '#5c7c84', '#425e66', '#38525a'], p: PATH, fl: ['#dfe8ff', '#f0b0d0', '#ffe08a'] },
+  dusk:   { g: ['#4e6c74', '#5c7c84', '#425e66', '#38525a'], p: PATH.map(c => mix(c, '#6a6890', .38)) /* same path, evening light */, fl: ['#dfe8ff', '#f0b0d0', '#ffe08a'] },
 };
 
 function regionOrigin(i) {
@@ -76,7 +76,10 @@ const World = {
       const ya = Math.min(sy, 12), yb = Math.max(sy + 1, 12);
       for (let y = ya; y <= yb; y++) { path(17, y); path(18, y); }
     }
-    if (R.sea) for (let y = 21; y < RH - 1; y++) for (let x = 1; x < RW - 1; x++) set(x, y, K.WATER, 1);
+    if (R.sea) {
+      for (let y = 21; y < RH; y++) for (let x = 0; x < RW; x++) set(x, y, K.WATER, 1);
+      for (let y = 19; y <= 20; y++) for (let x = 1; x < RW - 1; x++) if (this.kind[this.idx(ox + x, oy + y)] === K.GRASS) set(x, y, K.BEACH, 0);
+    }
 
     // places
     R.spots.forEach(spot => {
@@ -133,7 +136,7 @@ const World = {
       const kind = R.decor[Math.floor(rand() * R.decor.length)];
       if (['flowers', 'leaves', 'wheat', 'shell', 'grass', 'drift', 'glowflower'].includes(kind)) continue; // flat decor is baked
       const d = drawDecor(kind, n * 13 + ri, ri);
-      this.objects.push({ kind: 'sprite', img: d.img, x: (ox + x) * T + 8 - d.img.width / 2, y: (oy + y) * T + 14 - d.img.height, baseY: (oy + y) * T + 10 });
+      this.objects.push({ kind: 'sprite', img: d.img, x: (ox + x) * T + 8 - d.img.width / 2, y: (oy + y) * T + 14 - d.img.height, baseY: (oy + y) * T + 10, glow: kind === 'lamp' });
       if (d.solid) set(x, y, K.GRASS, 1);
       reserve(x, y);
     }
@@ -164,7 +167,7 @@ const World = {
     this.flatDecor = this.flatDecor || [];
     for (let n = 0; n < 220; n++) {
       const x = 1 + Math.floor(rand() * (RW - 2)), y = 1 + Math.floor(rand() * (RH - 2)), k = this.idx(ox + x, oy + y);
-      if (this.kind[k] !== K.GRASS || this.solid[k]) continue;
+      if ((this.kind[k] !== K.GRASS && this.kind[k] !== K.BEACH) || this.solid[k]) continue;
       const flats = R.decor.filter(d => ['flowers', 'leaves', 'wheat', 'shell', 'grass', 'drift', 'glowflower'].includes(d));
       if (!flats.length) break;
       this.flatDecor.push({ img: drawFlat(flats[n % flats.length], n * 7 + ri, GROUNDS[R.ground].fl), x: (ox + x) * T + Math.floor(rand() * 5), y: (oy + y) * T + Math.floor(rand() * 7) });
@@ -197,6 +200,7 @@ const World = {
       let g = n > .62 ? P.g[1] : n < .3 ? P.g[2] : P.g[0];
       if (rr < .035) g = P.g[1]; else if (rr < .07) g = P.g[2];
       if (k === K.BORDER) g = n > .5 ? P.g[2] : P.g[3];
+      if (k === K.BEACH) { const B = P.beach; g = rr < .05 ? B[1] : rr < .1 ? B[2] : B[0]; if (ly < 3 && !K_[(ty - 1) * TW + tx] && hash(px, py) < .5) g = P.g[0]; }
       if (k === K.PATH || k === K.PLAZA) {
         // distance into grass at edges → ragged, rounded border
         let edge = 99;

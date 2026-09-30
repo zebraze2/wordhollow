@@ -193,12 +193,16 @@ const ROOFS = {
   red:   ['#4a1f22', '#86372f', '#a24a38', '#c0634a'],
   teal:  ['#1f3340', '#35556a', '#44708a', '#5f8fa8'],
   moss:  ['#2b3a22', '#4e6435', '#657f44', '#809b56'],
+  thatch:['#6a4a1e', '#a88238', '#c09a48', '#dcbc68'],
+  plum:  ['#2e1f3a', '#4e3466', '#644480', '#7e5c9c'],
 };
+/* wall timber per land: the same build everywhere, different wood */
+const WALLS = { 2: ['#6a4424', '#9a6a3a', '#b8864e'], 3: ['#6a2a22', '#8e3a2e', '#ac5040'], 5: ['#9a9890', '#dcd8cc', '#f0ece2'], 6: ['#3e2818', '#5e3e26', '#7a5434'], 7: ['#3a2440', '#5a3a5e', '#744e78'] };
 
 function drawHouse(v, after, region) {
   const W = 80, Hh = 86, p = new Pix(W, Hh), R = ROOFS[v] || ROOFS.brown, r = rng(v.length * 7 + region);
-  const wood = ['#6a4028', '#8a5634', '#a86e44'], stone = ['#5d6270', '#8a90a0', '#a8aebb', '#c8ccd6'];
-  const snow = region === 6;
+  const wood = WALLS[region] || ['#6a4028', '#8a5634', '#a86e44'], stone = ['#5d6270', '#8a90a0', '#a8aebb', '#c8ccd6'];
+  const snow = region === 6, thatch = v === 'thatch';
   // chimney
   p.rect(56, 2, 9, 18, stone[1]); p.rect(56, 2, 9, 2, stone[2]); p.rect(63, 4, 2, 16, stone[0]);
   for (let y = 6; y < 18; y += 4) p.rect(56, y, 9, 1, stone[0]);
@@ -207,7 +211,10 @@ function drawHouse(v, after, region) {
     const t = (y - 8) / 38, x0 = Math.round(7 - t * 6), x1 = W - 1 - x0, band = Math.floor((y - 8) / 6);
     const c = y <= 11 ? R[0] : y >= 43 ? (y === 43 ? R[3] : R[0]) : (band % 2 ? R[2] : R[1]);
     p.rect(x0, y, x1 - x0 + 1, 1, c);
-    if (y > 11 && y < 43) {
+    if (y > 11 && y < 43 && thatch) {
+      for (let x = x0 + 1; x < x1; x++) { const hsh = (x * 73 + y * 31) % 11; if (hsh < 2) p.set(x, y, R[0]); else if (hsh > 8) p.set(x, y, R[3]); }
+      if ((y - 8) % 9 === 8) p.rect(x0, y, x1 - x0 + 1, 1, R[1]);
+    } else if (y > 11 && y < 43) {
       if ((y - 8) % 6 === 5) p.rect(x0, y, x1 - x0 + 1, 1, R[0]);
       else for (let x = x0 + ((band * 7) % 11); x < x1; x += 11) p.set(x, y, R[0]);
       if ((y - 8) % 6 === 0) for (let x = x0 + 2; x < x1 - 1; x += 3 + ((x * 7) % 3)) p.set(x, y, R[3]);
@@ -218,7 +225,8 @@ function drawHouse(v, after, region) {
   if (snow) for (let x = 2; x < W - 2; x++) if (r() < .5) p.set(x, 43, '#f4f8fc');
   // walls
   p.rect(5, 47, 70, 12, wood[1]);
-  for (let x = 5; x < 75; x += 5) p.rect(x, 47, 1, 12, wood[0]);
+  if (snow) for (let y = 49; y < 59; y += 3) { p.rect(5, y, 70, 1, wood[0]); p.rect(5, y - 1, 70, 1, wood[2]); } // log cabin
+  else for (let x = 5; x < 75; x += 5) p.rect(x, 47, 1, 12, wood[0]);
   p.rect(5, 47, 70, 1, wood[0]);
   const win = x => {
     p.rect(x - 1, 48, 14, 11, wood[0]);

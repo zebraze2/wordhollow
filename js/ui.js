@@ -198,6 +198,7 @@ const UI = {
     if (left) return;
     const D = Save.data;
     if (D.unlocked <= ri + 1) { D.unlocked = ri + 2; Save.write(); } else return;
+    if (ri === REGIONS.length - 1) return this.finale();
     const next = REGIONS[ri + 1], built = ri + 1 < PLAYABLE;
     const g = World.gates.find(g => g.from === ri);
     if (g && built) World.setGate(g, true);
@@ -210,6 +211,20 @@ const UI = {
     Voice.say('ui_unlock');
     $('#ok', p).onclick = () => this.close();
     $('#map', p).onclick = () => { this.close(); this.openMap(); };
+  },
+
+  finale() {
+    SFX.unlock(); setTimeout(() => SFX.bloom(), 600);
+    for (let i = 0; i < 6; i++) setTimeout(() => Game.burst(Game.player.x + (Math.random() - .5) * 120, Game.player.y - 40 - Math.random() * 40, 'spark', 30), i * 350);
+    const n = Object.keys(WORDS).length, gifts = Save.data.gifts.length;
+    const p = h('div', 'card banner');
+    p.innerHTML = `<div class="kicker">All eight lands</div><h2>Wordhollow is whole again</h2>
+      <p>You helped all 40 neighbors, collected ${gifts} gifts, and learned to spell ${n} words. Well done!</p>
+      <p class="hint">Neighbors are always happy to practice words with you. Visit anyone to keep your words fresh.</p>
+      <div class="row"><button class="btn" id="book">Word book</button><button class="btn primary" id="ok">Keep exploring</button></div>`;
+    this.open(p, { onKey: e => { if (['Enter', ' '].includes(e.key)) this.close(); } });
+    $('#ok', p).onclick = () => this.close();
+    $('#book', p).onclick = () => { this.close(); this.openBook(); };
   },
 
   /* ---- pattern lesson card ---- */

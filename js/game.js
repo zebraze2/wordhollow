@@ -165,10 +165,38 @@ const Game = {
       if (Math.random() < dt * .5) this.burst(sp.left + Math.random() * sp.S.w, sp.top + Math.random() * sp.S.h * .7, 'twinkle', 1);
     }
     const ri = World.regionAt(this.cam.x + v.w / 2, this.cam.y + v.h / 2);
-    if (ri === 0 && Math.random() < dt * 1.2) this.particles.push({ type: 'petal', x: this.cam.x + Math.random() * v.w, y: this.cam.y - 4, vx: 6 + Math.random() * 6, vy: 10 + Math.random() * 6, life: 12, t: Math.random() * 6 });
-    for (const p of this.particles) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.type === 'spark') p.vy += 30 * dt; if (p.type === 'petal') p.x += Math.sin(p.t * 2) * .3; }
+    this.weather(ri, dt, v);
+    for (const p of this.particles) {
+      p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.type === 'spark') p.vy += 30 * dt;
+      if (p.type === 'fall') p.x += Math.sin(p.t * 2 + p.ph) * p.sway * dt;
+      if (p.type === 'firefly') { p.vx += (Math.random() - .5) * 40 * dt; p.vy += (Math.random() - .5) * 40 * dt; p.vx *= .98; p.vy *= .98; }
+    }
     this.particles = this.particles.filter(p => p.t < p.life);
     if (this.tapMark) { this.tapMark.t += dt; if (this.tapMark.t > .5) this.tapMark = null; }
+  },
+
+  /* each land has its own ambience; the rest of the world stays the same */
+  weather(ri, dt, v) {
+    const W = [
+      { rate: 1.2, fall: ['#f6b8cc', '#ffd8e4'], vy: 12, vx: 8, sway: 20 },           // Meadow Hollow: blossom petals
+      { rate: 1.4, mote: ['#fffbe0', '#f4f0c0'], vy: -4, vx: 3 },                       // Willow Pond: pollen
+      { rate: 1.2, fall: ['#ffffff', '#fbe4ec'], vy: 12, vx: 6, sway: 24 },           // Orchard Rise: white blossom
+      { rate: 1.5, fall: ['#fff6d8', '#f0e0a0'], vy: 4, vx: 18, sway: 10 },           // Windmill Fields: seed fluff on the wind
+      { rate: 1.6, fall: ['#e8812a', '#c8461c', '#f0a040', '#a33f6e'], vy: 16, vx: 5, sway: 30, size: 2 }, // Pumpkin Glen: leaves
+      { rate: .8, mote: ['#ffffff', '#d8f4ff'], vy: -2, vx: 0, sea: true },            // Saltwind Harbor: sea sparkle
+      { rate: 5, fall: ['#ffffff', '#eef4fb'], vy: 18, vx: 3, sway: 14, size: 1 },     // Frostfen: snow
+      { rate: 1, firefly: true },                                                       // Lantern Heights: fireflies
+    ][ri];
+    if (!W || Math.random() > dt * W.rate) return;
+    const c = a => a[Math.floor(Math.random() * a.length)];
+    if (W.fall) this.particles.push({ type: 'fall', c: c(W.fall), s: W.size || (Math.random() < .5 ? 2 : 1), x: this.cam.x + Math.random() * v.w - 20, y: this.cam.y - 4, vx: W.vx * (.6 + Math.random() * .8), vy: W.vy * (.7 + Math.random() * .6), sway: W.sway, ph: Math.random() * 6, life: 14, t: 0 });
+    else if (W.mote) {
+      let x = this.cam.x + Math.random() * v.w, y = this.cam.y + Math.random() * v.h;
+      if (W.sea) { const { oy } = regionOrigin(ri); y = (oy + 21) * T + Math.random() * 40; }
+      this.particles.push({ type: 'twinkle', x, y, vx: W.vx, vy: W.vy, life: 1.6, t: 0 });
+      if (!W.sea) this.particles.push({ type: 'fall', c: c(W.mote), s: 1, x, y, vx: W.vx, vy: W.vy, sway: 6, ph: 0, life: 5, t: 0 });
+    } else if (W.firefly) this.particles.push({ type: 'firefly', x: this.cam.x + Math.random() * v.w, y: this.cam.y + Math.random() * v.h, vx: 0, vy: 0, life: 6, t: 0 });
   },
 
   face(sp) { const P = this.player; P.dir = Math.abs(sp.ax * T + 8 - P.x) > 12 && Math.abs(sp.person.y - P.y) < 12 ? (sp.person.x > P.x ? 2 : 3) : 1; },
@@ -232,7 +260,7 @@ const Game = {
     list.sort((a, b) => a.baseY - b.baseY);
     const R = n => Math.round(n * s) / s;
     for (const o of list) {
-      if (o.kind === 'sprite') c.drawImage(o.img, o.x, o.y);
+      if (o.kind === 'sprite') { c.drawImage(o.img, o.x, o.y); if (o.glow) this.glow(o.x + 6, o.y + 6, 18); }
       else if (o.kind === 'place' || o.kind === 'placeFront') {
         const sp = o.spot, S = sp.S;
         let img;
@@ -269,7 +297,8 @@ const Game = {
       else if (p.type === 'spark') { c.globalAlpha = Math.min(1, a * 2); c.fillStyle = p.c; c.fillRect(R(p.x), R(p.y), 1, 1); if (a > .5) { c.fillRect(R(p.x) - 1, R(p.y), 3, 1); c.fillRect(R(p.x), R(p.y) - 1, 1, 3); } }
       else if (p.type === 'twinkle') { c.globalAlpha = Math.sin(a * Math.PI); c.fillStyle = '#fff6d0'; c.fillRect(R(p.x) - 1, R(p.y), 3, 1); c.fillRect(R(p.x), R(p.y) - 1, 1, 3); }
       else if (p.type === 'heart') { c.globalAlpha = Math.min(1, a * 2); c.fillStyle = '#e8506a'; const x = R(p.x), y = R(p.y); c.fillRect(x - 2, y, 2, 1); c.fillRect(x + 1, y, 2, 1); c.fillRect(x - 2, y + 1, 5, 1); c.fillRect(x - 1, y + 2, 3, 1); c.fillRect(x, y + 3, 1, 1); }
-      else if (p.type === 'petal') { c.globalAlpha = .9; c.fillStyle = Math.sin(p.t * 3) > 0 ? '#f6b8cc' : '#ffd8e4'; c.fillRect(R(p.x), R(p.y), 2, 1); }
+      else if (p.type === 'fall') { c.globalAlpha = Math.min(1, a * 3) * .95; c.fillStyle = p.c; c.fillRect(R(p.x), R(p.y), p.s, Math.sin(p.t * 3 + p.ph) > 0 ? 1 : p.s); }
+      else if (p.type === 'firefly') { const on = Math.sin(p.t * 2.5) * .5 + .5, f = Math.sin(a * Math.PI) * on; c.globalAlpha = 1; if (f > .05) { c.globalAlpha = f; this.glow(p.x, p.y, 7); c.fillStyle = '#fff4a0'; c.fillRect(R(p.x), R(p.y), 1, 1); } }
     }
     c.globalAlpha = 1;
     // gates into locked lands sit on top of the cloud bank so you can always see the way on
