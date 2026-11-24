@@ -1,3 +1,4 @@
 tools/.venv/
 tools/models/
 __pycache__/
+.vercel

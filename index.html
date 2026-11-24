@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>Wordhollow</title>
+  <title>Explorer Spell</title>
   <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,6 +25,29 @@
   <button id="prompt" hidden></button>
   <div id="ui"></div>
 
+  <script>
+    /* The game moved from zebraze2.github.io to bregan.org/explore/. A browser keeps each site's
+       saves separate, so the old address forwards players and carries their progress along. */
+    (function () {
+      const KEY = 'wordhollow.v1', HOME = 'https://bregan.org/explore/';
+      const enc = s => btoa(unescape(encodeURIComponent(s))), dec = s => decodeURIComponent(escape(atob(s)));
+      if (location.hostname.endsWith('github.io')) {
+        let save = null; try { save = localStorage.getItem(KEY); } catch {}
+        location.replace(HOME + (save ? '#import=' + encodeURIComponent(enc(save)) : ''));
+        throw new Error('moved'); // stop here; the page is leaving
+      }
+      const m = location.hash.match(/^#import=(.+)$/);
+      if (!m) return;
+      try {
+        const incoming = JSON.parse(dec(decodeURIComponent(m[1])));
+        const here = JSON.parse(localStorage.getItem(KEY) || 'null');
+        // keep whichever save has more play in it, so a second visit never wipes newer progress
+        const score = d => !d ? -1 : Object.keys(d.done || {}).length * 1e4 + Object.values(d.words || {}).reduce((n, w) => n + (w.right || 0) + (w.wrong || 0), 0);
+        if (score(incoming) > score(here)) localStorage.setItem(KEY, JSON.stringify(incoming));
+      } catch {}
+      history.replaceState(null, '', location.pathname);
+    })();
+  </script>
   <script src="js/words.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/learn.js"></script>

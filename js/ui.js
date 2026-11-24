@@ -69,8 +69,8 @@ const UI = {
     const D = Save.data, p = h('div', 'card title-card');
     p.innerHTML = `
       <div class="kicker">A spelling adventure</div>
-      <h1>Wordhollow</h1>
-      <p class="lede">In this village, well-spelled words bring things back to life. Help the neighbors, and new lands open up.</p>
+      <h1>Explorer Spell</h1>
+      <p class="lede">In the village of Wordhollow, well-spelled words bring things back to life. Help the neighbors, and new lands open up.</p>
       <div class="row"><button class="btn primary big" id="go">${D.started ? 'Continue' : 'Begin'}</button></div>
       <div class="how">${touch ? 'Tap to walk. Tap a neighbor to help them.' : 'Arrow keys or WASD to walk · Space to talk · M for the map'}</div>
       <button class="link" id="grownups">How it teaches spelling</button>`;
@@ -90,7 +90,7 @@ const UI = {
   method(back) {
     const p = h('div', 'card method');
     p.innerHTML = `
-      <h2>How Wordhollow teaches spelling</h2>
+      <h2>How Explorer Spell teaches spelling</h2>
       <p>The practice follows what research on spelling instruction supports for grades 1–2:</p>
       <ul>
         <li><b>One pattern at a time, taught directly.</b> Each land opens with a short lesson on a single spelling pattern, in a standard phonics order: short vowels, digraphs, blends, silent e, vowel teams, bossy r, then word endings.</li>

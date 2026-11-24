@@ -1,9 +1,9 @@
-# Wordhollow
+# Explorer Spell
 
 A cozy pixel-art spelling adventure for grades 1–2. Walk around a village, help the
 neighbors by spelling words from dictation, and watch their homes and gardens bloom.
 
-Play: https://zebraze2.github.io/wordhollow/
+Play: https://bregan.org/explore/ (the old github.io address forwards there, carrying saved progress)
 
 - Eight lands, each teaching one spelling pattern (short vowels → digraphs → blends →
   silent e → vowel teams → bossy r → word parts). Land 1 is open; more are coming.
